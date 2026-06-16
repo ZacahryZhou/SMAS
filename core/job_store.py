@@ -21,6 +21,13 @@ def write_json(filename: str, data: dict[str, Any]) -> Path:
     return path
 
 
+def try_read_json(filename: str) -> dict[str, Any] | None:
+    path = STATE_DIR / filename
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def read_json(filename: str) -> dict[str, Any]:
     path = STATE_DIR / filename
     if not path.exists():

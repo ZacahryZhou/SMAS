@@ -30,6 +30,18 @@ def cmd_check() -> int:
     else:
         print("- fal.ai: key not set (will use placeholder image when DRY_RUN=true)")
 
+    if settings.telegram_bot_token and settings.telegram_chat_id:
+        print("- Telegram: configured")
+    else:
+        print("- Telegram: missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID")
+
+    return 0
+
+
+def cmd_telegram() -> int:
+    from channels.telegram_bot import run_bot
+
+    run_bot()
     return 0
 
 
@@ -130,6 +142,8 @@ def build_parser() -> argparse.ArgumentParser:
     generate_parser = sub.add_parser("generate", help="Generate Instagram post draft")
     generate_parser.add_argument("request", help="What kind of post to create")
 
+    sub.add_parser("telegram", help="Start Telegram bot")
+
     return parser
 
 
@@ -158,6 +172,9 @@ def main(argv: list[str] | None = None) -> int:
             print('Usage: python main.py generate "做一条关于 AI agent 的 Instagram 帖"')
             return 1
         return cmd_generate(args.request)
+
+    if args.command == "telegram":
+        return cmd_telegram()
 
     parser.print_help()
     return 0

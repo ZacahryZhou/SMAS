@@ -26,10 +26,33 @@ def cmd_check() -> int:
         return 1
 
     if settings.fal_key:
-        print("- fal.ai: key present (image test happens in M2)")
+        print("- fal.ai: key present")
     else:
-        print("- fal.ai: key not set yet (needed in M2, not required for M1)")
+        print("- fal.ai: key not set (will use placeholder image when DRY_RUN=true)")
 
+    return 0
+
+
+def cmd_generate(user_request: str) -> int:
+    from core.content_pipeline import ContentPipeline
+
+    print(f"Generating content for: {user_request}")
+    print("This may take 30-90 seconds if fal.ai is enabled...\n")
+
+    try:
+        preview_path = ContentPipeline().run_guided(user_request)
+    except Exception as exc:
+        print(f"Generation failed: {exc}")
+        return 1
+
+    from core.job_store import read_json
+
+    caption = read_json("caption.json")
+    print("Done.")
+    print(f"- Preview image: {preview_path}")
+    print(f"- Hook: {caption.get('hook', '')}")
+    print(f"- Full caption saved: state/caption.json")
+    print(f"- Job state: state/state.json")
     return 0
 
 
@@ -104,6 +127,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     profile_parser.add_argument("message", nargs="?", help="Single chat message for profile chat")
 
+    generate_parser = sub.add_parser("generate", help="Generate Instagram post draft")
+    generate_parser.add_argument("request", help="What kind of post to create")
+
     return parser
 
 
@@ -126,6 +152,12 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             return cmd_profile_chat(args.message)
         return cmd_profile_interactive()
+
+    if args.command == "generate":
+        if not args.request:
+            print('Usage: python main.py generate "做一条关于 AI agent 的 Instagram 帖"')
+            return 1
+        return cmd_generate(args.request)
 
     parser.print_help()
     return 0

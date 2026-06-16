@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import os
-import urllib.request
 from pathlib import Path
 from typing import Any
 
 import fal_client as fal_sdk
 
 from config import settings
+from tools.http_download import download_file
 
 
 class FalError(RuntimeError):
@@ -48,8 +48,7 @@ class FalImageClient:
         if not image_url:
             raise FalError(f"fal.ai image payload missing url: {images[0]}")
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(image_url, output_path)
+        download_file(image_url, output_path)
 
         return {
             "model": "fal-ai/nano-banana-pro",

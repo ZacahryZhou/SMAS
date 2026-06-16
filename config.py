@@ -31,6 +31,9 @@ class Settings:
 
     fal_key: str = os.getenv("FAL_KEY", "")
 
+    ssl_verify: bool = _bool(os.getenv("SMAS_SSL_VERIFY"), default=True)
+    ssl_cert_file: str = os.getenv("SSL_CERT_FILE", "")
+
     telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
 

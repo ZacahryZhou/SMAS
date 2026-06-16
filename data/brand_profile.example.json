@@ -1,0 +1,26 @@
+{
+  "account": {
+    "display_name": "",
+    "handle": "",
+    "language": "en",
+    "platforms": ["instagram"]
+  },
+  "niche": {
+    "category": "",
+    "audience": "",
+    "positioning": ""
+  },
+  "voice": {
+    "tone": [],
+    "avoid": [],
+    "cta_style": ""
+  },
+  "visual": {
+    "style_keywords": [],
+    "color_palette": [],
+    "no_text_on_image": true
+  },
+  "topic_sources": [],
+  "onboarding_complete": false,
+  "updated_at": null
+}

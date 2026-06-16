@@ -1,0 +1,28 @@
+# Secrets
+.env
+.env.*
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Runtime state
+state/*.json
+state/*.png
+state/*.jpg
+!state/.gitkeep
+
+# Local DB / personal profile
+data/*.db
+data/brand_profile.json
+data/profile_history/*.json
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/

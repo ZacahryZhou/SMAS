@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smas.local/schemas/brand_profile.json",
+  "title": "BrandProfile",
+  "type": "object",
+  "required": ["account", "niche", "voice", "visual", "topic_sources", "onboarding_complete"],
+  "properties": {
+    "account": {
+      "type": "object",
+      "required": ["display_name", "handle", "language", "platforms"],
+      "properties": {
+        "display_name": { "type": "string" },
+        "handle": { "type": "string" },
+        "language": { "type": "string" },
+        "platforms": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["instagram", "facebook"] }
+        }
+      }
+    },
+    "niche": {
+      "type": "object",
+      "properties": {
+        "category": { "type": "string" },
+        "audience": { "type": "string" },
+        "positioning": { "type": "string" }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "properties": {
+        "tone": { "type": "array", "items": { "type": "string" } },
+        "avoid": { "type": "array", "items": { "type": "string" } },
+        "cta_style": { "type": "string" }
+      }
+    },
+    "visual": {
+      "type": "object",
+      "properties": {
+        "style_keywords": { "type": "array", "items": { "type": "string" } },
+        "color_palette": { "type": "array", "items": { "type": "string" } },
+        "no_text_on_image": { "type": "boolean" }
+      }
+    },
+    "topic_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "enabled"],
+        "properties": {
+          "type": { "type": "string", "enum": ["rss", "reddit", "manual"] },
+          "url": { "type": "string" },
+          "subreddit": { "type": "string" },
+          "weight": { "type": "number", "minimum": 0, "maximum": 1 },
+          "enabled": { "type": "boolean" }
+        }
+      }
+    },
+    "onboarding_complete": { "type": "boolean" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -57,14 +57,44 @@ def cmd_generate(user_request: str) -> int:
         print(f"Generation failed: {exc}")
         return 1
 
+    from core.job_store import read_json, try_read_json
+    from core.post_types import POST_TYPE_LABELS
+
+    caption = read_json("caption.json")
+    brief = read_json("brief.json")
+    visual_spec = try_read_json("visual_spec.json")
+    post_type = brief.get("post_type", caption.get("post_type", "general"))
+    post_label = POST_TYPE_LABELS.get(post_type, post_type)
+    render_path = visual_spec.get("path", "A") if visual_spec else "A"
+    print("Done.")
+    print(f"- Post type: {post_label} ({post_type})")
+    print(f"- Render path: {render_path}")
+    print(f"- Preview image: {preview_path}")
+    print(f"- Hook: {caption.get('hook', '')}")
+    print(f"- Brief: state/brief.json, state/creative_brief.json, state/visual_spec.json")
+    print(f"- Full caption saved: state/caption.json")
+    print(f"- Job state: state/state.json")
+    return 0
+
+
+def cmd_edit(instruction: str) -> int:
+    from core.content_pipeline import ContentPipeline
+
+    try:
+        preview_path = ContentPipeline().apply_edit(instruction)
+    except Exception as exc:
+        print(f"Edit failed: {exc}")
+        return 1
+
     from core.job_store import read_json
 
     caption = read_json("caption.json")
-    print("Done.")
+    from pipeline.review_gate import build_review_prompt
+
+    print("Edit applied.")
     print(f"- Preview image: {preview_path}")
-    print(f"- Hook: {caption.get('hook', '')}")
-    print(f"- Full caption saved: state/caption.json")
-    print(f"- Job state: state/state.json")
+    print()
+    print(build_review_prompt(caption))
     return 0
 
 
@@ -142,6 +172,9 @@ def build_parser() -> argparse.ArgumentParser:
     generate_parser = sub.add_parser("generate", help="Generate Instagram post draft")
     generate_parser.add_argument("request", help="What kind of post to create")
 
+    edit_parser = sub.add_parser("edit", help="Edit the current preview while waiting for review")
+    edit_parser.add_argument("instruction", help='Edit instruction, e.g. "字大一点" or "商品往右"')
+
     sub.add_parser("telegram", help="Start Telegram bot")
 
     return parser
@@ -172,6 +205,12 @@ def main(argv: list[str] | None = None) -> int:
             print('Usage: python main.py generate "做一条关于 AI agent 的 Instagram 帖"')
             return 1
         return cmd_generate(args.request)
+
+    if args.command == "edit":
+        if not args.instruction:
+            print('Usage: python main.py edit "字大一点"')
+            return 1
+        return cmd_edit(args.instruction)
 
     if args.command == "telegram":
         return cmd_telegram()

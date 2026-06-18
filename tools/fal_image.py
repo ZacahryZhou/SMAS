@@ -39,7 +39,62 @@ class FalImageClient:
             },
             with_logs=True,
         )
+        return self._save_first_image(
+            result,
+            output_path=output_path,
+            model="fal-ai/nano-banana-pro",
+            prompt=prompt,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
+        )
 
+    def edit_image(
+        self,
+        *,
+        prompt: str,
+        image_paths: list[Path],
+        output_path: Path,
+        aspect_ratio: str = "4:5",
+        resolution: str = "1K",
+        enable_web_search: bool = False,
+    ) -> dict[str, Any]:
+        if not image_paths:
+            raise FalError("Path B requires at least one reference image.")
+
+        image_urls = [fal_sdk.upload_file(str(path)) for path in image_paths]
+        result = fal_sdk.subscribe(
+            "fal-ai/nano-banana-pro/edit",
+            arguments={
+                "prompt": prompt,
+                "image_urls": image_urls,
+                "aspect_ratio": aspect_ratio,
+                "resolution": resolution,
+                "enable_web_search": enable_web_search,
+            },
+            with_logs=True,
+        )
+        return self._save_first_image(
+            result,
+            output_path=output_path,
+            model="fal-ai/nano-banana-pro/edit",
+            prompt=prompt,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
+            reference_images=[str(path) for path in image_paths],
+            reference_urls=image_urls,
+        )
+
+    def _save_first_image(
+        self,
+        result: dict[str, Any],
+        *,
+        output_path: Path,
+        model: str,
+        prompt: str,
+        aspect_ratio: str,
+        resolution: str,
+        **extra: Any,
+    ) -> dict[str, Any]:
         images = result.get("images") or []
         if not images:
             raise FalError(f"fal.ai returned no images: {result}")
@@ -51,10 +106,11 @@ class FalImageClient:
         download_file(image_url, output_path)
 
         return {
-            "model": "fal-ai/nano-banana-pro",
+            "model": model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "resolution": resolution,
             "file": str(output_path),
             "source_url": image_url,
+            **extra,
         }

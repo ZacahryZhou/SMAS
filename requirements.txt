@@ -11,6 +11,9 @@ requests>=2.31.0
 feedparser>=6.0.0
 praw>=7.7.0
 
+# Template cutout (optional — PNG transparency works without it)
+# rembg>=2.0.50
+
 # MVP-1
 python-telegram-bot>=21.0
 boto3>=1.35.0

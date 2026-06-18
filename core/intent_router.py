@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from core.edit_parser import is_edit_message, normalize_edit_text
 from core.job_store import try_read_json
 
 
@@ -53,6 +54,10 @@ def route_message(text: str) -> RoutedIntent:
             return RoutedIntent("review_action", {"action": "approve"})
         if _matches_any(cleaned, SKIP_PATTERNS):
             return RoutedIntent("review_action", {"action": "skip"})
+        if cleaned.lower().startswith("/edit "):
+            return RoutedIntent("review_edit", {"instruction": cleaned[len("/edit ") :].strip()})
+        if is_edit_message(cleaned):
+            return RoutedIntent("review_edit", {"instruction": normalize_edit_text(cleaned)})
 
     if cleaned.startswith("/generate "):
         return RoutedIntent(

@@ -39,7 +39,7 @@ def init_job(*, user_request: str, mode: str = "guided") -> dict[str, Any]:
     now = datetime.now(timezone.utc).isoformat()
     state = {
         "job_id": new_job_id(),
-        "step": "topic",
+        "step": "classify",
         "status": "running",
         "mode": mode,
         "user_request": user_request,

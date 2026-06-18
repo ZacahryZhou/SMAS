@@ -31,6 +31,9 @@ class Settings:
 
     fal_key: str = os.getenv("FAL_KEY", "")
 
+    # product_promo + assets: auto | b (reference gen) | c (template)
+    product_render_path: str = os.getenv("SMAS_PRODUCT_RENDER_PATH", "auto").strip().lower()
+
     ssl_verify: bool = _bool(os.getenv("SMAS_SSL_VERIFY"), default=True)
     ssl_cert_file: str = os.getenv("SSL_CERT_FILE", "")
 

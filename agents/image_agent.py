@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 
 from config import STATE_DIR, settings
 from core.brand_context import build_brand_context
-from core.job_store import mark_step_done, read_json, write_json
+from core.job_store import mark_step_done, read_json, try_read_json, write_json
 from core.models import BrandProfile
 from core.profile_store import load_profile
 from tools.deepseek_client import DeepSeekClient
@@ -17,13 +17,15 @@ from tools.fal_image import FalImageClient
 PROMPT_SYSTEM = """
 You are the Image Prompt Agent for SMAS.
 
-Given topic, caption hook, and brand visual style, write one English image prompt for Instagram.
+Given creative brief, caption hook, and brand visual style, write one English image prompt for Instagram.
 
 Rules:
 - One sentence or two short sentences in English.
-- Match visual style keywords and color palette.
+- Use creative_brief.visual.scene as the primary scene direction.
+- Reflect composition and color_mood from the brief.
 - Instagram vertical image, clean composition.
-- If no_text_on_image is true, explicitly include: no text, no words, no typography, no logo.
+- If text_on_image.enabled is false, include: no text, no words, no typography, no logo.
+- If text_on_image.enabled is true, still avoid rendering text in the image; leave clean space for overlay later.
 - No people unless clearly relevant to the topic.
 
 Output valid json only:
@@ -31,6 +33,22 @@ Output valid json only:
   "prompt": "..."
 }
 """.strip()
+
+
+def _load_image_context() -> tuple[dict, dict, dict]:
+    creative_brief = try_read_json("creative_brief.json")
+    caption = read_json("caption.json")
+    if creative_brief:
+        topic = {
+            "title": creative_brief.get("headline") or creative_brief.get("title", ""),
+            "angle": creative_brief.get("caption_angle") or creative_brief.get("angle", ""),
+            "post_type": creative_brief.get("post_type", "general"),
+            "visual": creative_brief.get("visual", {}),
+        }
+        return topic, caption, creative_brief
+
+    topic = read_json("topic.json")
+    return topic, caption, {}
 
 
 class ImageAgent:
@@ -42,12 +60,24 @@ class ImageAgent:
         self._llm = llm or DeepSeekClient()
         self._fal = fal
 
-    def _build_prompt(self, profile: BrandProfile, topic: dict, caption: dict) -> str:
+    def _build_prompt(
+        self,
+        profile: BrandProfile,
+        topic: dict,
+        caption: dict,
+        creative_brief: dict,
+    ) -> str:
+        visual = creative_brief.get("visual", topic.get("visual", {}))
+        text_on_image = visual.get("text_on_image", {})
+        allow_text_overlay = bool(text_on_image.get("enabled"))
+
         payload = {
+            "creative_brief": creative_brief or topic,
             "topic": topic,
             "caption_hook": caption.get("hook", ""),
             "brand_context": build_brand_context(profile),
-            "no_text_on_image": profile.visual.no_text_on_image,
+            "no_text_on_image": profile.visual.no_text_on_image and not allow_text_overlay,
+            "visual": visual,
         }
         result = self._llm.chat_json(
             system=PROMPT_SYSTEM,
@@ -74,9 +104,8 @@ class ImageAgent:
 
     def run(self, profile: BrandProfile | None = None) -> dict:
         profile = profile or load_profile()
-        topic = read_json("topic.json")
-        caption = read_json("caption.json")
-        prompt = self._build_prompt(profile, topic, caption)
+        topic, caption, creative_brief = _load_image_context()
+        prompt = self._build_prompt(profile, topic, caption, creative_brief)
 
         output_path = STATE_DIR / "image.png"
 
@@ -101,6 +130,7 @@ class ImageAgent:
         image_record = {
             **meta,
             "source": source,
+            "post_type": caption.get("post_type", topic.get("post_type", "general")),
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         write_json("image.json", image_record)

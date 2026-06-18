@@ -9,6 +9,7 @@ from core.content_pipeline import ContentPipeline
 from core.intent_router import RoutedIntent, route_message
 from core.job_store import read_json, try_read_json
 from core.profile_store import load_profile
+from pipeline.review_edit import apply_edit_instruction
 from pipeline.review_gate import apply_review, build_review_prompt
 
 
@@ -47,6 +48,12 @@ class Orchestrator:
             action = routed.payload.get("action", "")
             return OrchestratorResult(apply_review(action))
 
+        if routed.intent == "review_edit":
+            instruction = routed.payload.get("instruction", "").strip()
+            if not instruction:
+                return OrchestratorResult("请说明要如何修改，例如：字大一点 / 商品往右 / 改文案：语气更轻松")
+            return self.apply_edit(instruction)
+
         if routed.intent == "manage_profile":
             message = routed.payload.get("message", "").strip()
             if message.startswith("/profile"):
@@ -55,6 +62,13 @@ class Orchestrator:
             return OrchestratorResult(f"{reply}\n\n---\n{build_profile_summary(load_profile())}")
 
         return OrchestratorResult(self._help_message())
+
+    def apply_edit(self, instruction: str) -> OrchestratorResult:
+        try:
+            text, preview_path = apply_edit_instruction(instruction)
+        except RuntimeError as exc:
+            return OrchestratorResult(str(exc))
+        return OrchestratorResult(text=text, image_path=preview_path)
 
     def generate(self, user_request: str) -> OrchestratorResult:
         state = try_read_json("state.json")
@@ -87,8 +101,12 @@ class Orchestrator:
             "1. /generate <内容需求>  生成 Ins 预览\n"
             "2. 生成后回复 ok / 发布  确认草稿\n"
             "3. 回复 skip / 跳过      放弃当前草稿\n"
-            "4. /profile              查看品牌资料\n"
-            "5. /status               查看任务状态\n\n"
+            "4. 修改预览，例如：\n"
+            "   edit: 字大一点\n"
+            "   商品往右 / 路径：C\n"
+            "   改文案：语气更轻松\n"
+            "5. /profile              查看品牌资料\n"
+            "6. /status               查看任务状态\n\n"
             "当前阶段不会自动发布到 Instagram，审核通过只会保存草稿。"
         )
 

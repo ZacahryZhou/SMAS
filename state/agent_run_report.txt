@@ -1,0 +1,21 @@
+=== SMAS agent run Wed Jun 17 15:54:00 PDT 2026 ===
+PREVIEW_BEFORE: 1781736616 43814
+=== python main.py check ===
+SMAS API check
+- DRY_RUN: False
+- DeepSeek: FAILED (Connection error.)
+---EXIT_CHECK:1---
+=== python main.py generate ===
+Generating content for: 类型：商品推广。Dario 咖啡宣传，强调手冲风味和温暖午后氛围，适合朋友小聚
+This may take 30-90 seconds if fal.ai is enabled...
+
+Generation failed: Connection error.
+---EXIT_GENERATE:1---
+=== ls -la state/preview_feed.png ===
+-rw-r--r--@ 1 yixinzhou  staff  43814 Jun 17 15:50 state/preview_feed.png
+PREVIEW_AFTER: 1781736616 43814
+PREVIEW_UPDATED: no
+=== caption hook ===
+Some afternoons are better with a slower cup.
+=== visual_spec path ===
+A

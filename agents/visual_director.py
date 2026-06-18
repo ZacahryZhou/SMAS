@@ -1,3 +1,5 @@
+#这个文件是还在读取brief和caption 调用DeepSeek的AP AI 然后决定使用哪条path以及具体的视觉参数 输出visual_spec.json
+
 from __future__ import annotations
 
 import json
@@ -19,6 +21,14 @@ from core.models import (
 from core.profile_store import load_profile
 from core.request_parser import parse_render_path_override
 from tools.deepseek_client import DeepSeekClient
+
+
+#这个system prompt 是给视觉导演的指令
+#1-> how to write the system prompt: -> give a ai role + define input/output format
+#2-> how to design decision logic -> when to use different path and why
+#3-> how to connect the LangGraph -> the run() function is a natura; LangGraph node 
+
+
 
 SYSTEM_PROMPT = """
 You are the Visual Director for SMAS.

@@ -12,6 +12,17 @@ from pipeline.image_render import ImageRenderPipeline
 from pipeline.preview_composer import PreviewComposer
 
 
+#这里是在启动工具
+#ContentClassifierAgent判断内容类型
+#CreativeBriefAgent生成创意简报
+#CaptionAgent生成文案
+#VisualDirectorAgent生成图片
+#ImageRenderPipeline生成图片
+
+#这里的每一步都依赖上一步的输出作为输入然后生成新的输出
+#这叫做数据依赖
+
+#这里的是流水线 比如视觉方向是根据文案的输出来决定的原因两个1:保持一致性 2:简单可靠 3:可扩展性
 class ContentPipeline:
     def __init__(self) -> None:
         self.classifier = ContentClassifierAgent()
@@ -28,7 +39,7 @@ class ContentPipeline:
                 "Brand profile is not ready. Set onboarding_complete=true and fill niche.category in "
                 "data/brand_profile.json."
             )
-
+#一开始初始化开始工作前记录任务开始并且写入state.json
         init_job(user_request=user_request, mode="guided")
 
         try:
@@ -41,7 +52,7 @@ class ContentPipeline:
         except Exception as exc:
             update_job(status="failed", error=str(exc))
             raise
-
+#完成工作后更新任务状态为waiting_review并且写入state.json
         update_job(status="waiting_review", step="review")
         return preview_path
 
@@ -60,3 +71,15 @@ class ContentPipeline:
     def last_render_path(self) -> str:
         spec = read_json("visual_spec.json")
         return spec.get("path", "A")
+
+'''
+整个流程是从用户输入信息
+-> intent router identifies the intent(labeling the message)
+-> orchestrator dispatches to the right handler
+-> ContentPipline generate the whole content(executes)
+→ init_job records the start
+→ 6 agents run in sequence
+   Classifier → Brief → Caption → Visual → Image → Composer
+→ update_job records completion (status: waiting_review)
+→ orchestrator returns preview to user for review
+'''

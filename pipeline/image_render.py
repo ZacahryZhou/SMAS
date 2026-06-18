@@ -1,3 +1,6 @@
+#读取visual_spec.json 根据path调用fal.ai或者pillow生成真是图片输出image.png
+
+#注意这个是 决策->执行 的分离模式 叫做关注点分离 就是决定做什么和怎么做不放在同一个地方
 from __future__ import annotations
 
 import json
@@ -63,6 +66,7 @@ class ImageRenderPipeline:
         self._llm = llm or DeepSeekClient()
         self._fal = fal
 
+#这便是根据上一步的visual_director决定的path然后根据A/B/C不同的路径来生成图片
     def run(self, profile: BrandProfile | None = None) -> dict:
         profile = profile or load_profile()
         visual_spec = read_json("visual_spec.json")
@@ -84,7 +88,7 @@ class ImageRenderPipeline:
     def _render_path_a(self, visual_spec: dict, profile: BrandProfile) -> dict:
         output_path = STATE_DIR / "image.png"
         prompt = visual_spec.get("path_a_prompt") or self._build_path_a_prompt(visual_spec, profile)
-
+#这里的是dry——run测试如果有api可以调用API但是如果没有api key的时候则可以调用假图来占位
         if settings.fal_key and not settings.dry_run:
             fal = self._fal or FalImageClient()
             meta = fal.generate_image(prompt=prompt, output_path=output_path)

@@ -50,7 +50,7 @@ class ContentPipeline:
 
         _, preview_path = apply_edit_instruction(instruction)
         if preview_path is None:
-            raise RuntimeError("修改失败，没有生成新的预览图。")
+            raise RuntimeError("Edit failed: no new preview image was generated.")
         return preview_path
 
     def last_post_type(self) -> str:

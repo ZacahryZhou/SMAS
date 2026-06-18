@@ -1,0 +1,1 @@
+#this folder is about the channels of the smass ->渠道层，用于与用户交互，目前有Telegram和CLI两种渠道

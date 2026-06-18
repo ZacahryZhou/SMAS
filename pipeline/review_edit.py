@@ -84,28 +84,28 @@ def apply_visual_patches(spec: dict, edit: EditRequest) -> bool:
 def summarize_edit(edit: EditRequest) -> str:
     parts: list[str] = []
     if "caption" in edit.scopes and edit.caption_note:
-        parts.append(f"文案: {edit.caption_note}")
+        parts.append(f"caption: {edit.caption_note}")
     elif "caption" in edit.scopes:
-        parts.append("文案已根据修改意见重写")
+        parts.append("caption rewritten from your feedback")
     if edit.path_override:
-        parts.append(f"出图 Path {edit.path_override}")
+        parts.append(f"render path {edit.path_override}")
     if edit.product_shift:
-        parts.append("调整了商品位置")
+        parts.append("product position adjusted")
     if edit.text_size_delta > 0:
-        parts.append("加大了图上文字")
+        parts.append("overlay text enlarged")
     elif edit.text_size_delta < 0:
-        parts.append("减小了图上文字")
+        parts.append("overlay text reduced")
     if edit.overlay_text:
-        parts.append(f"叠字改为 {edit.overlay_text}")
+        parts.append(f"overlay text set to {edit.overlay_text}")
     if "image" in edit.scopes and not parts:
-        parts.append("已重新生成图片")
-    return "；".join(parts) if parts else "已应用修改"
+        parts.append("image regenerated")
+    return "; ".join(parts) if parts else "changes applied"
 
 
 def apply_edit_instruction(instruction: str) -> tuple[str, Path | None]:
     state = read_json("state.json")
     if state.get("status") != "waiting_review":
-        raise RuntimeError("当前没有等待审核的内容，无法修改。")
+        raise RuntimeError("There is no content waiting for review, so it cannot be edited.")
 
     edit = parse_edit_instruction(instruction)
     profile = load_profile()
@@ -128,14 +128,14 @@ def apply_edit_instruction(instruction: str) -> tuple[str, Path | None]:
             changes.append("image")
 
     if not changes:
-        raise RuntimeError("没有识别到可执行的修改，请换个说法试试。")
+        raise RuntimeError("No actionable edit was recognized. Try rephrasing your request.")
 
     preview_path = pipeline.rerun_preview(profile)
     update_job(status="waiting_review", step="review")
 
     caption = read_json("caption.json")
     summary = summarize_edit(edit)
-    message = f"已根据你的意见更新（{summary}）。\n\n{build_review_prompt(caption)}"
+    message = f"Updated based on your feedback ({summary}).\n\n{build_review_prompt(caption)}"
     return message, preview_path
 
 

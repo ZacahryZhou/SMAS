@@ -31,15 +31,15 @@ def build_brand_context(profile: BrandProfile) -> str:
 
 def build_profile_summary(profile: BrandProfile) -> str:
     lines = [
-        "当前品牌资料库",
-        f"账号名: {profile.account.display_name or '(未设置)'}",
-        f"Handle: {profile.account.handle or '(未设置)'}",
-        f"语言: {profile.account.language}",
-        f"品类: {profile.niche.category or '(未设置)'}",
-        f"受众: {profile.niche.audience or '(未设置)'}",
-        f"定位: {profile.niche.positioning or '(未设置)'}",
-        f"语气: {', '.join(profile.voice.tone) or '(未设置)'}",
-        f"视觉风格: {', '.join(profile.visual.style_keywords) or '(未设置)'}",
-        f"建档完成: {'是' if profile.onboarding_complete else '否'}",
+        "Brand profile",
+        f"Display name: {profile.account.display_name or '(not set)'}",
+        f"Handle: {profile.account.handle or '(not set)'}",
+        f"Language: {profile.account.language}",
+        f"Category: {profile.niche.category or '(not set)'}",
+        f"Audience: {profile.niche.audience or '(not set)'}",
+        f"Positioning: {profile.niche.positioning or '(not set)'}",
+        f"Tone: {', '.join(profile.voice.tone) or '(not set)'}",
+        f"Visual style: {', '.join(profile.visual.style_keywords) or '(not set)'}",
+        f"Onboarding complete: {'yes' if profile.onboarding_complete else 'no'}",
     ]
     return "\n".join(lines)

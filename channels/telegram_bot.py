@@ -22,7 +22,7 @@ def _authorized(update: Update) -> bool:
 
 async def _reject_unauthorized(update: Update) -> None:
     if update.message:
-        await update.message.reply_text("这个 bot 未授权当前聊天。")
+        await update.message.reply_text("This bot is not authorized for the current chat.")
 
 
 async def _run_orchestrator(text: str):
@@ -81,15 +81,15 @@ async def generate_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     request = " ".join(context.args).strip()
     if not request:
-        await update.message.reply_text('用法：/generate Create a post about AI agents')
+        await update.message.reply_text("Usage: /generate Create a post about AI agents")
         return
 
-    await update.message.reply_text("正在生成，大约需要 30-90 秒，请稍候...")
+    await update.message.reply_text("Generating... this usually takes 30-90 seconds.")
     try:
         result = await _run_orchestrator(f"/generate {request}")
     except Exception as exc:
         logger.exception("generate failed")
-        await update.message.reply_text(f"生成失败：{exc}")
+        await update.message.reply_text(f"Generation failed: {exc}")
         return
     await _reply_result(update, result)
 
@@ -106,14 +106,25 @@ async def text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     state_hint = text.lower()
-    if any(word in state_hint for word in ("做一条", "生成", "generate", "create a post", "make a post")):
-        await update.message.reply_text("正在生成，大约需要 30-90 秒，请稍候...")
+    if any(
+        word in state_hint
+        for word in (
+            "做一条",
+            "生成",
+            "发帖",
+            "generate",
+            "create a post",
+            "make a post",
+            "write a post",
+        )
+    ):
+        await update.message.reply_text("Generating... this usually takes 30-90 seconds.")
 
     try:
         result = await _run_orchestrator(text)
     except Exception as exc:
         logger.exception("message handling failed")
-        await update.message.reply_text(f"处理失败：{exc}")
+        await update.message.reply_text(f"Request failed: {exc}")
         return
 
     await _reply_result(update, result)

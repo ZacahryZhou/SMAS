@@ -6,38 +6,45 @@ from dataclasses import dataclass, field
 _EDIT_PREFIX = re.compile(r"^(?:edit|修改|改)\s*[:：]\s*", re.IGNORECASE)
 
 _PATH_PATTERN = re.compile(
-    r"(?:路径|path|render|出图)\s*[:：]?\s*([ABCabc])\b|换成\s*(?:path\s*)?([ABCabc])\b",
+    r"(?:path|render|路径|出图)\s*[:：]?\s*([ABCabc])\b|switch\s+to\s+(?:path\s+)?([ABCabc])\b|换成\s*(?:path\s*)?([ABCabc])\b",
     re.IGNORECASE,
 )
 
-_CAPTION_PREFIX = re.compile(r"^(?:改文案|文案|caption|hook)\s*[:：]\s*", re.IGNORECASE)
+_CAPTION_PREFIX = re.compile(r"^(?:caption|hook|改文案|文案)\s*[:：]\s*", re.IGNORECASE)
 
 _IMAGE_KEYWORDS = (
-    r"字大",
-    r"字小",
     r"bigger",
     r"smaller",
-    r"商品",
+    r"larger",
     r"product",
-    r"路径",
     r"path",
+    r"render",
+    r"background",
+    r"image",
+    r"overlay",
+    r"badge",
+    r"move",
+    r"字大",
+    r"字小",
+    r"商品",
+    r"路径",
     r"出图",
     r"背景",
     r"图片",
-    r"image",
-    r"overlay",
     r"叠字",
 )
 
 _CAPTION_KEYWORDS = (
-    r"文案",
     r"caption",
     r"hook",
     r"hashtag",
-    r"标签",
+    r"tag",
     r"cta",
-    r"语气",
     r"tone",
+    r"rewrite",
+    r"文案",
+    r"标签",
+    r"语气",
 )
 
 
@@ -89,22 +96,22 @@ def parse_edit_instruction(text: str) -> EditRequest:
 
     path_match = _PATH_PATTERN.search(raw)
     if path_match:
-        letter = (path_match.group(1) or path_match.group(2) or "").upper()
+        letter = (path_match.group(1) or path_match.group(2) or path_match.group(3) or "").upper()
         if letter in {"A", "B", "C"}:
             edit.path_override = letter
 
-    if re.search(r"字大一点|字大点|大一点|bigger text|larger text", lowered):
+    if re.search(r"字大一点|字大点|大一点|bigger text|larger text|make.*bigger|increase.*text", lowered):
         edit.text_size_delta = 1
-    elif re.search(r"字小一点|字小点|小一点|smaller text", lowered):
+    elif re.search(r"字小一点|字小点|小一点|smaller text|make.*smaller|decrease.*text", lowered):
         edit.text_size_delta = -1
 
-    if re.search(r"商品往右|商品右移|product right|move right", lowered):
+    if re.search(r"商品往右|商品右移|product right|move right|shift right", lowered):
         edit.product_shift = (0.08, 0.0)
-    elif re.search(r"商品往左|商品左移|product left|move left", lowered):
+    elif re.search(r"商品往左|商品左移|product left|move left|shift left", lowered):
         edit.product_shift = (-0.08, 0.0)
-    elif re.search(r"商品往上|product up|move up", lowered):
+    elif re.search(r"商品往上|product up|move up|shift up", lowered):
         edit.product_shift = (0.0, -0.08)
-    elif re.search(r"商品往下|product down|move down", lowered):
+    elif re.search(r"商品往下|product down|move down|shift down", lowered):
         edit.product_shift = (0.0, 0.08)
 
     caption_match = _CAPTION_PREFIX.match(raw)
@@ -118,7 +125,11 @@ def parse_edit_instruction(text: str) -> EditRequest:
             flags=re.IGNORECASE,
         ).strip()
 
-    overlay_match = re.search(r"(?:叠字|标题|overlay|badge)\s*[:：]\s*(.+)$", raw, flags=re.IGNORECASE)
+    overlay_match = re.search(
+        r"(?:overlay|badge|title|叠字|标题)\s*[:：]\s*(.+)$",
+        raw,
+        flags=re.IGNORECASE,
+    )
     if overlay_match:
         edit.overlay_text = overlay_match.group(1).strip().strip("'\"")
 

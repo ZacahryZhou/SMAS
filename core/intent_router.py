@@ -1,3 +1,4 @@
+# 这个文件是意图转换器，可以把用户发的一段自然语言文字，翻译成系统能够理解的标签意图
 from __future__ import annotations
 
 import re
@@ -13,26 +14,59 @@ class RoutedIntent:
     intent: str
     payload: dict[str, Any]
 
+# 上面的意思就是用户的意图和附带的参数，比如测试的时候用户说要做一条关于什么什么的帖子
 
+# because in the real situation, the user will talk to the ai what they want
+# and this file will translate the user's natural language into a tag intent
+# so that the orchestrator can understand the user's intent and take appropriate action
+
+# therefore this part is about the 意图识别
 GENERATE_PATTERNS = (
-    r"做一条",
-    r"生成",
-    r"发帖",
+    # English
     r"create a post",
     r"generate",
     r"make a post",
+    r"create post",
+    r"write a post",
+    r"post about",
+    # Chinese
+    r"做一条",
+    r"生成",
+    r"发帖",
 )
 
 PROFILE_PATTERNS = (
+    # English
+    r"profile",
+    r"brand profile",
+    r"style",
+    r"account",
+    r"data source",
+    # Chinese
     r"风格",
     r"资料",
     r"账号",
-    r"profile",
     r"数据源",
 )
 
-APPROVE_PATTERNS = (r"^ok$", r"^yes$", r"发布", r"approve", r"确认")
-SKIP_PATTERNS = (r"^skip$", r"跳过", r"cancel", r"取消")
+APPROVE_PATTERNS = (
+    r"^ok$",
+    r"^yes$",
+    r"publish",
+    r"approve",
+    r"confirm",
+    r"发布",
+    r"确认",
+)
+
+SKIP_PATTERNS = (
+    r"^skip$",
+    r"cancel",
+    r"discard",
+    r"drop",
+    r"跳过",
+    r"取消",
+)
 
 
 def _matches_any(text: str, patterns: tuple[str, ...]) -> bool:

@@ -5,26 +5,32 @@ import re
 from core.post_types import normalize_post_type
 
 _TYPE_PREFIX = re.compile(
-    r"^(?:类型|type)\s*[:：]\s*(.+?)(?:[。.!！?？\n]|$)",
+    r"^(?:type|类型)\s*[:：]\s*(.+?)(?:[.。!！?？\n]|$)",
     re.IGNORECASE,
 )
 
 _TYPE_ALIASES: dict[str, str] = {
+    # English
+    "product promo": "product_promo",
+    "product_promo": "product_promo",
+    "product": "product_promo",
+    "promo": "product_promo",
+    "promotion": "product_promo",
+    "event campaign": "event_campaign",
+    "event_campaign": "event_campaign",
+    "event": "event_campaign",
+    "campaign": "event_campaign",
+    "sale": "event_campaign",
+    "general": "general",
+    # Chinese
     "商品推广": "product_promo",
     "推广": "product_promo",
     "种草": "product_promo",
     "商品": "product_promo",
-    "product_promo": "product_promo",
-    "product": "product_promo",
-    "promo": "product_promo",
     "活动促销": "event_campaign",
     "活动": "event_campaign",
     "促销": "event_campaign",
-    "event_campaign": "event_campaign",
-    "event": "event_campaign",
-    "campaign": "event_campaign",
     "通用": "general",
-    "general": "general",
 }
 
 
@@ -47,7 +53,7 @@ def strip_type_prefix(user_request: str) -> str:
 
 
 _RENDER_PREFIX = re.compile(
-    r"(?:出图|路径|path|render)\s*[:：]\s*([ABCabc])\b",
+    r"(?:path|render|出图|路径)\s*[:：]\s*([ABCabc])\b",
     re.IGNORECASE,
 )
 

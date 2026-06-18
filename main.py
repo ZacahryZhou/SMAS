@@ -106,7 +106,7 @@ def cmd_profile_show() -> int:
 
 def cmd_profile_reset() -> int:
     reset_profile()
-    print("品牌资料库已重置。")
+    print("Brand profile has been reset.")
     return 0
 
 
@@ -115,7 +115,7 @@ def cmd_profile_chat(message: str) -> int:
 
     agent = ProfileManagerAgent()
     reply, profile = agent.handle_message(message)
-    print("\n助手:")
+    print("\nAssistant:")
     print(reply)
     print("\n---")
     print(build_profile_summary(profile))
@@ -127,27 +127,27 @@ def cmd_profile_interactive() -> int:
 
     agent = ProfileManagerAgent()
     print(agent.start_onboarding())
-    print("\n输入内容继续建档或修改。输入 exit 退出。\n")
+    print("\nContinue onboarding or editing. Type exit to quit.\n")
 
     history: list[dict[str, str]] = []
     while True:
         try:
-            user_input = input("你: ").strip()
+            user_input = input("You: ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\n已退出。")
+            print("\nExited.")
             return 0
 
         if not user_input:
             continue
-        if user_input.lower() in {"exit", "quit", "q", "退出"}:
-            print("已退出。")
+        if user_input.lower() in {"exit", "quit", "q"}:
+            print("Exited.")
             return 0
 
         reply, profile = agent.handle_message(user_input, history=history)
         history.append({"role": "user", "content": user_input})
         history.append({"role": "assistant", "content": reply})
 
-        print("\n助手:")
+        print("\nAssistant:")
         print(reply)
         print("\n---")
         print(build_profile_summary(profile))
@@ -173,7 +173,7 @@ def build_parser() -> argparse.ArgumentParser:
     generate_parser.add_argument("request", help="What kind of post to create")
 
     edit_parser = sub.add_parser("edit", help="Edit the current preview while waiting for review")
-    edit_parser.add_argument("instruction", help='Edit instruction, e.g. "字大一点" or "商品往右"')
+    edit_parser.add_argument("instruction", help='Edit instruction, e.g. "bigger text" or "move product right"')
 
     sub.add_parser("telegram", help="Start Telegram bot")
 
@@ -195,20 +195,20 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_profile_reset()
         if args.action == "chat":
             if not args.message:
-                print("Usage: python main.py profile chat \"你的消息\"")
+                print('Usage: python main.py profile chat "your message"')
                 return 1
             return cmd_profile_chat(args.message)
         return cmd_profile_interactive()
 
     if args.command == "generate":
         if not args.request:
-            print('Usage: python main.py generate "做一条关于 AI agent 的 Instagram 帖"')
+            print('Usage: python main.py generate "Create a post about AI agents for Instagram"')
             return 1
         return cmd_generate(args.request)
 
     if args.command == "edit":
         if not args.instruction:
-            print('Usage: python main.py edit "字大一点"')
+            print('Usage: python main.py edit "bigger text"')
             return 1
         return cmd_edit(args.instruction)
 

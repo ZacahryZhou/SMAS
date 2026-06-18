@@ -29,7 +29,7 @@ Required onboarding information before setting onboarding_complete=true:
 Behavior rules:
 - Reply in the same language the user uses.
 - Be concise and practical.
-- If the user says "确认" / "confirm" / "done", only set onboarding_complete=true when required fields are present.
+- If the user says "confirm" or "done", only set onboarding_complete=true when required fields are present.
 - If information is incomplete, keep onboarding_complete=false and ask the next best question.
 - Never invent facts the user did not provide.
 - For profile edits, only patch fields that should change.
@@ -87,13 +87,13 @@ class ProfileManagerAgent:
         profile = load_profile()
         if profile.onboarding_complete:
             return (
-                "你的品牌资料库已经建立完成。\n"
+                "Your brand profile is already set up.\n"
                 f"{build_profile_summary(profile)}\n\n"
-                "你可以直接描述想修改的内容，例如：\n"
-                "「把风格改成更高级一点」"
+                "Describe any changes you want, for example:\n"
+                "\"Make the tone more premium\""
             )
 
         reply, _ = self.handle_message(
-            "你好，我想开始建立我的 Instagram 频道资料库。请开始问我问题。"
+            "Hi, I want to set up my Instagram brand profile. Please start asking me questions."
         )
         return reply

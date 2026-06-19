@@ -47,12 +47,18 @@ def cmd_telegram() -> int:
 
 def cmd_generate(user_request: str) -> int:
     from core.content_pipeline import ContentPipeline
+    from core.pipeline_errors import TypeConfirmationRequired
 
     print(f"Generating content for: {user_request}")
     print("This may take 30-90 seconds if fal.ai is enabled...\n")
 
     try:
         preview_path = ContentPipeline().run_guided(user_request)
+    except TypeConfirmationRequired as exc:
+        print(exc.message)
+        print('\nConfirm post type with: python main.py confirm "1"')
+        print('Or: python main.py confirm "type: product promo"')
+        return 0
     except Exception as exc:
         print(f"Generation failed: {exc}")
         return 1
@@ -71,9 +77,45 @@ def cmd_generate(user_request: str) -> int:
     print(f"- Render path: {render_path}")
     print(f"- Preview image: {preview_path}")
     print(f"- Hook: {caption.get('hook', '')}")
+    critic = try_read_json("critic_report.json")
+    if critic and critic.get("overall_score") is not None:
+        print(
+            f"- Critic: overall {critic.get('overall_score')}/10 "
+            f"(caption {critic.get('caption_score')}, visual {critic.get('visual_score')}, "
+            f"alignment {critic.get('alignment_score')})"
+        )
     print(f"- Brief: state/brief.json, state/creative_brief.json, state/visual_spec.json")
     print(f"- Full caption saved: state/caption.json")
     print(f"- Job state: state/state.json")
+    return 0
+
+
+def cmd_confirm(choice: str) -> int:
+    from core.content_pipeline import ContentPipeline
+    from core.job_store import read_json
+    from core.type_confirm import parse_type_confirmation
+    from pipeline.review_gate import build_review_prompt
+
+    post_type = parse_type_confirmation(choice)
+    if not post_type:
+        print('Could not parse post type. Use: python main.py confirm "1"')
+        print('Or: python main.py confirm "type: product promo"')
+        return 1
+
+    print(f"Continuing with post type: {post_type}")
+    print("This may take 30-90 seconds if fal.ai is enabled...\n")
+
+    try:
+        preview_path = ContentPipeline().continue_after_type_confirm(post_type)
+    except Exception as exc:
+        print(f"Generation failed: {exc}")
+        return 1
+
+    caption = read_json("caption.json")
+    print("Done.")
+    print(f"- Preview image: {preview_path}")
+    print()
+    print(build_review_prompt(caption))
     return 0
 
 
@@ -175,6 +217,9 @@ def build_parser() -> argparse.ArgumentParser:
     edit_parser = sub.add_parser("edit", help="Edit the current preview while waiting for review")
     edit_parser.add_argument("instruction", help='Edit instruction, e.g. "bigger text" or "move product right"')
 
+    confirm_parser = sub.add_parser("confirm", help="Confirm post type after low-confidence classification")
+    confirm_parser.add_argument("choice", help='1/2/3 or "type: product promo"')
+
     sub.add_parser("telegram", help="Start Telegram bot")
 
     return parser
@@ -211,6 +256,12 @@ def main(argv: list[str] | None = None) -> int:
             print('Usage: python main.py edit "bigger text"')
             return 1
         return cmd_edit(args.instruction)
+
+    if args.command == "confirm":
+        if not args.choice:
+            print('Usage: python main.py confirm "1"')
+            return 1
+        return cmd_confirm(args.choice)
 
     if args.command == "telegram":
         return cmd_telegram()

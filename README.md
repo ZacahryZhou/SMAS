@@ -15,6 +15,7 @@
 - [What SMAS Does](#what-smas-does--smas-做什么)
 - [Architecture](#architecture--架构概览)
 - [Post Types & Image Paths](#post-types--image-paths--帖子类型与出图路径)
+- [V2.1 Quality Plan](#v21-quality-plan--v21-质量增强)
 - [Project Status](#project-status--项目状态)
 - [Tech Stack](#tech-stack--技术栈)
 - [Directory Layout](#directory-layout--目录结构)
@@ -70,6 +71,7 @@ User (CLI / Telegram / OpenClaw)
 Intent Router  ──►  Orchestrator  ──►  Content Pipeline
    (tag intent)        (dispatch)           │
                                             ├─ Content Classifier   → brief.json
+                                            ├─ Type Confirm         → if confidence is low
                                             ├─ Creative Brief Agent → creative_brief.json
                                             ├─ Caption Agent        → caption.json
                                             ├─ Visual Director      → visual_spec.json
@@ -88,7 +90,8 @@ Intent Router  ──►  Orchestrator  ──►  Content Pipeline
 | **Pipeline** | Image & preview execution / 出图执行 | `pipeline/image_render.py`, `preview_composer.py`, `review_gate.py` |
 | **Data** | Brand & artifacts / 品牌与工件 | `data/brand_profile.json`, `state/*.json` |
 
-Full design doc: **[docs/DEV_ARCHITECTURE.md](docs/DEV_ARCHITECTURE.md)**
+Full design doc: **[docs/DEV_ARCHITECTURE.md](docs/DEV_ARCHITECTURE.md)**  
+Current improvement plan: **[docs/CONTENT_IMPROVEMENT_ROADMAP.md](docs/CONTENT_IMPROVEMENT_ROADMAP.md)**
 
 ---
 
@@ -109,8 +112,8 @@ type: product promo     # English
 类型：商品推广            # Chinese
 ```
 
-If omitted, **Content Classifier** infers the type.  
-未指定时由 **Content Classifier** 自动推断。
+If omitted, **Content Classifier** infers the type. If confidence is low, SMAS asks you to confirm with `1/2/3` before generating.  
+未指定时由 **Content Classifier** 自动推断。如果置信度低，SMAS 会先让你回复 `1/2/3` 确认类型，再继续生成。
 
 ### Image render paths / 出图路径
 
@@ -125,6 +128,22 @@ Override in request: `path: B` or `路径：C`
 
 ---
 
+## V2.1 Quality Plan / V2.1 质量增强
+
+Before building the website and user-ops layer, SMAS is improving single-post quality:
+
+```text
+Playbooks → stricter Path A/B/C rules → type confirmation → critic + feedback loop
+```
+
+Current focus:
+
+- `docs/CONTENT_IMPROVEMENT_ROADMAP.md` tracks the step-by-step implementation.
+- `docs/PLAYBOOKS.md` defines per-type caption and visual standards.
+- `data/playbooks/*.json` is the prompt base for `product_promo`, `event_campaign`, and `general`.
+
+---
+
 ## Project Status / 项目状态
 
 | Phase | Scope | Status |
@@ -134,6 +153,8 @@ Override in request: `path: B` or `路径：C`
 | V2-B | Visual Director + Path C + local assets | ✅ Done |
 | V2-C | Path B product reference rendering | ✅ Done |
 | V2-D | Review edit (caption / image / path) | ✅ Done |
+| V2.1-W1 | Playbooks + path rules + type confirmation | 🔄 In progress |
+| V2.1-W3 | Critic + feedback loop + wins JSONL | ⏳ Planned |
 | MVP-1 | R2 CDN + Instagram Graph API publish | ⏸ Paused |
 
 ---
@@ -191,7 +212,8 @@ SMAS/
 │
 ├── data/
 │   ├── brand_profile.json  # Your brand (gitignored)
-│   └── assets/products/    # Product images for Path B/C
+│   ├── assets/products/    # Product images for Path B/C
+│   └── playbooks/          # V2.1 per-type standards
 │
 ├── state/                  # Per-job artifacts (generated)
 │   ├── state.json
@@ -204,6 +226,8 @@ SMAS/
 │
 └── docs/
     ├── DEV_ARCHITECTURE.md
+    ├── CONTENT_IMPROVEMENT_ROADMAP.md
+    ├── PLAYBOOKS.md
     └── ARCHITECTURE_V2.md
 ```
 
@@ -269,6 +293,7 @@ Output: `state/preview_feed.png` (+ JSON artifacts under `state/`)
 | `DEEPSEEK_MODEL` | Default `deepseek-chat` | 模型名 |
 | `FAL_KEY` | fal.ai API key | fal 密钥 |
 | `SMAS_PRODUCT_RENDER_PATH` | `auto` \| `b` \| `c` for product promos | 商品推广默认出图策略 |
+| `SMAS_TYPE_CONFIRM_THRESHOLD` | Default `0.8`; ask user to confirm below this confidence | 低于该置信度先让用户确认类型 |
 | `SMAS_SSL_VERIFY` | Set `false` only if proxy SSL issues on macOS | macOS 代理证书问题时可设 false |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token | Telegram |
 | `TELEGRAM_CHAT_ID` | Allowed chat ID | 允许的聊天 ID |
@@ -402,6 +427,8 @@ Publishing to Instagram is **not** automated in the current MVP.
 | Doc | Description |
 |-----|-------------|
 | [docs/DEV_ARCHITECTURE.md](docs/DEV_ARCHITECTURE.md) | Main architecture, milestones, acceptance / 主架构文档 |
+| [docs/CONTENT_IMPROVEMENT_ROADMAP.md](docs/CONTENT_IMPROVEMENT_ROADMAP.md) | V2.1 step-by-step content quality plan / 内容质量增强路线图 |
+| [docs/PLAYBOOKS.md](docs/PLAYBOOKS.md) | Post-type caption and visual standards / 帖子类型宣传规范 |
 | [docs/ARCHITECTURE_V2.md](docs/ARCHITECTURE_V2.md) | V2 design notes & examples / V2 设计补充 |
 
 ---
@@ -410,7 +437,8 @@ Publishing to Instagram is **not** automated in the current MVP.
 
 - [x] V2 content engine (classify → brief → caption → visual → render → preview)
 - [x] Human review + edit loop
-- [ ] Image prompt quality tuning & asset validation
+- [ ] V2.1 playbooks + type confirm + path hard rules
+- [ ] Critic + feedback loop + wins examples
 - [ ] Instagram Graph API + R2 CDN (MVP-1, blocked on Meta SMS verification)
 - [ ] Multi-brand / scheduled posting (future)
 

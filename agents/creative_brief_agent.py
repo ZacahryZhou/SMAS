@@ -4,7 +4,9 @@ import json
 from datetime import datetime, timezone
 
 from core.brand_context import build_brand_context
+from core.brief_binding import missing_brief_fields
 from core.job_store import mark_step_done, read_json, write_json
+from core.playbook import format_playbook_block, format_win_examples
 from core.models import BrandProfile, CreativeBrief, VisualBrief
 from core.post_types import POST_TYPE_LABELS
 from core.profile_store import load_profile
@@ -35,6 +37,10 @@ Post-type guidance:
 - event_campaign: bold focal area, leave room for date/time overlay later, energetic mood
 - general: atmospheric scene, minimal promo cues, usually no text on image
 
+All fields below are required for downstream caption and image binding:
+- headline, key_message, caption_angle, cta_hint must be non-empty
+- visual.scene, visual.product_placement, visual.composition, visual.color_mood must be non-empty
+
 Output valid json only:
 {
   "headline": "...",
@@ -58,6 +64,17 @@ Output valid json only:
   }
 }
 """.strip()
+
+
+def _build_system_prompt(post_type: str) -> str:
+    parts = [SYSTEM_PROMPT]
+    playbook_block = format_playbook_block(post_type)
+    if playbook_block:
+        parts.append(playbook_block)
+    win_block = format_win_examples(post_type)
+    if win_block:
+        parts.append(win_block)
+    return "\n\n".join(parts)
 
 
 def sync_topic_from_brief(brief: CreativeBrief, *, user_request: str) -> dict:
@@ -91,8 +108,9 @@ class CreativeBriefAgent:
             "assets_available": classification.get("assets_available", []),
             "brand_context": build_brand_context(profile),
         }
+        post_type = classification["post_type"]
         result = self._client.chat_json(
-            system=SYSTEM_PROMPT,
+            system=_build_system_prompt(post_type),
             user=json.dumps(payload, ensure_ascii=False, indent=2),
             max_tokens=1536,
             temperature=0.4,
@@ -110,10 +128,9 @@ class CreativeBriefAgent:
             visual=VisualBrief.model_validate(result.get("visual", {})),
         )
 
-        record = {
-            **brief.model_dump(),
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
+        record = brief.model_dump()
+        record["binding_gaps"] = missing_brief_fields(record)
+        record["created_at"] = datetime.now(timezone.utc).isoformat()
         write_json("creative_brief.json", record)
         sync_topic_from_brief(brief, user_request=classification.get("user_request", ""))
         mark_step_done("brief", next_step="caption")

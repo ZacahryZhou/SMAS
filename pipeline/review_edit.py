@@ -13,6 +13,14 @@ from pipeline.review_gate import build_review_prompt
 SIZE_ORDER = ["small", "medium", "large"]
 
 
+def _rerun_critic(profile) -> None:
+    from config import settings
+    from core.content_pipeline import ContentPipeline
+
+    if settings.critic_enabled:
+        ContentPipeline()._run_critic(profile)
+
+
 def _clamp(value: float, low: float = 0.12, high: float = 0.88) -> float:
     return max(low, min(high, value))
 
@@ -131,6 +139,7 @@ def apply_edit_instruction(instruction: str) -> tuple[str, Path | None]:
         raise RuntimeError("No actionable edit was recognized. Try rephrasing your request.")
 
     preview_path = pipeline.rerun_preview(profile)
+    _rerun_critic(profile)
     update_job(status="waiting_review", step="review")
 
     caption = read_json("caption.json")

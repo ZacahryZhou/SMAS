@@ -1,0 +1,28 @@
+{
+  "job_id": "20260619-011328-76d593",
+  "post_type": "product_promo",
+  "user_request": "Dario咖啡店新品Gelato推广 - 一张有质感的美食摄影风格图片，展示Dario咖啡店新推出的Gelato冰淇淋。画面要突出Gelato的诱人质感和色彩，搭配咖啡杯或咖啡豆作为背景点缀，温暖有格调的咖啡馆氛围。文字部分强调夏日新品、意式手工Gelato、搭配咖啡的完美组合。",
+  "path": "B",
+  "path_reason": "Product asset available for reference scene generation; Path B allows placing the hero product in a realistic lifestyle scene as specified in the creative brief.",
+  "hook": "Summer scoop alert 🍦",
+  "scene": "A close-up of a creamy artisanal gelato scoop in a ceramic bowl, placed on a wooden table with a small espresso cup and scattered coffee beans in soft warm natural light, cozy café atmosphere.",
+  "critic": {
+    "overall_score": 9,
+    "caption_score": 9,
+    "visual_score": 8,
+    "alignment_score": 9,
+    "summary": "Strong draft with excellent alignment to the brief, a compelling hook, and a clear visual scene; minor inconsistencies in visual directives and asset usage can be easily fixed.",
+    "issues": [
+      "Visual path B edit prompt includes 'no text, no words, no typography' but composition mentions negative space for text overlay, creating slight inconsistency.",
+      "Asset 'assets/products/sample_bottle.png' is referenced but the product is gelato, not a bottle; asset role may be misaligned.",
+      "Body bullet points are clear but could be more concise for Instagram's fast-scrolling format."
+    ],
+    "suggestions": [
+      "Remove the 'no text' constraint from the edit prompt if text overlay is intended, or clarify that text will be added later.",
+      "Verify that the referenced product asset matches the gelato product; if not, update asset_roles or use a different asset.",
+      "Consider condensing body into one or two punchy lines to improve readability on mobile."
+    ]
+  },
+  "action": "skip",
+  "saved_at": "2026-06-19T01:15:05.228656+00:00"
+}

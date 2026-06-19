@@ -83,6 +83,13 @@ def route_message(text: str) -> RoutedIntent:
         return RoutedIntent("unknown", {})
 
     state = try_read_json("state.json")
+    if state and state.get("status") == "confirm_post_type":
+        if cleaned in {"/help", "help", "帮助"}:
+            return RoutedIntent("help", {})
+        if cleaned in {"/status", "status", "状态"}:
+            return RoutedIntent("query_status", {})
+        return RoutedIntent("confirm_post_type", {"choice": cleaned})
+
     if state and state.get("status") == "waiting_review":
         if _matches_any(cleaned, APPROVE_PATTERNS):
             return RoutedIntent("review_action", {"action": "approve"})

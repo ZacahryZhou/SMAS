@@ -1,0 +1,19 @@
+{
+  "post_type": "product_promo",
+  "label_en": "Product promo",
+  "label_zh": "商品推广",
+  "caption_guidance": "Hook under 20 words tied to one clear product benefit. Body: exactly 3 short bullet selling points. CTA: soft question or comment prompt, not hard sell. Hashtags: 8-12 mix of brand, niche, and product tags.",
+  "visual_guidance": "Instagram 4:5 (1080x1350). Hero product occupies 60-80% of frame, centered or rule-of-thirds. Clean background tied to brand palette. Lifestyle context when using Path B. No AI-generated text on image for Path A/B.",
+  "path_rules": "With product asset: default Path B for lifestyle scene reference edit. Use Path C when short badges, price, or NEW labels are needed. Without asset: Path A atmosphere only. Never use Path A when a hero product asset is available.",
+  "composition": {
+    "aspect_ratio": "4:5",
+    "resolution": "1080x1350",
+    "product_frame_pct": "60-80",
+    "safe_zone": "Keep focal product and key labels in center; avoid critical details in top/bottom 10% (UI overlap)."
+  },
+  "prompt_snippets": {
+    "path_a": "Clean instagram lifestyle scene showcasing the product category mood, vertical 4:5, soft natural light, minimal props, no text, no words, no typography, no logo.",
+    "path_b": "Place the reference product as the hero in a realistic lifestyle scene. Product clearly visible and recognizable. Vertical instagram photo 4:5, warm natural light, clean composition, shallow depth of field, no text, no words, no typography.",
+    "path_c": "Template composite: hero product cutout on brand-colored background, optional 1-2 short uppercase badges (e.g. NEW, -20%), leave negative space, mobile-readable layout."
+  }
+}

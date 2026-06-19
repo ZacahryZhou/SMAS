@@ -12,27 +12,40 @@ sys.path.insert(0, str(ROOT))
 from core.orchestrator import Orchestrator  # noqa: E402
 
 
-def cmd_generate(request: str) -> int:
-    result = Orchestrator().generate(request)
+def _result_payload(result) -> dict:
+    from core.job_store import try_read_json
+
+    critic = try_read_json("critic_report.json") or {}
     payload = {
         "ok": True,
         "text": result.text,
         "preview_image": str(result.image_path) if result.image_path else None,
         "caption_file": str(ROOT / "state" / "caption.json"),
         "state_file": str(ROOT / "state" / "state.json"),
+        "critic_file": str(ROOT / "state" / "critic_report.json"),
     }
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    if critic.get("overall_score") is not None:
+        payload["critic"] = {
+            "overall_score": critic.get("overall_score"),
+            "caption_score": critic.get("caption_score"),
+            "visual_score": critic.get("visual_score"),
+            "alignment_score": critic.get("alignment_score"),
+            "summary": critic.get("summary"),
+            "issues": critic.get("issues", []),
+            "suggestions": critic.get("suggestions", []),
+        }
+    return payload
+
+
+def cmd_generate(request: str) -> int:
+    result = Orchestrator().generate(request)
+    print(json.dumps(_result_payload(result), ensure_ascii=False, indent=2))
     return 0
 
 
 def cmd_message(text: str) -> int:
     result = Orchestrator().handle_text(text)
-    payload = {
-        "ok": True,
-        "text": result.text,
-        "preview_image": str(result.image_path) if result.image_path else None,
-    }
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    print(json.dumps(_result_payload(result), ensure_ascii=False, indent=2))
     return 0
 
 

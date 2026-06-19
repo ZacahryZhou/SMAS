@@ -8,6 +8,11 @@ from datetime import datetime, timezone
 from config import settings
 from core.asset_manager import pick_default_product
 from core.brand_context import build_brand_context
+from core.brief_binding import (
+    extract_caption_context,
+    extract_visual_directives,
+    visual_binding_rules,
+)
 from core.job_store import mark_step_done, read_json, write_json
 from core.models import (
     AssetUsed,
@@ -19,6 +24,7 @@ from core.models import (
     VisualSpec,
 )
 from core.profile_store import load_profile
+from core.playbook import format_playbook_block, format_win_examples, playbook_path_snippet
 from core.request_parser import parse_render_path_override
 from tools.deepseek_client import DeepSeekClient
 
@@ -76,6 +82,17 @@ Output valid json only:
   "path_c_use_ai_background": false
 }
 """.strip()
+
+
+def _build_system_prompt(post_type: str) -> str:
+    parts = [SYSTEM_PROMPT, visual_binding_rules()]
+    playbook_block = format_playbook_block(post_type)
+    if playbook_block:
+        parts.append(playbook_block)
+    win_block = format_win_examples(post_type)
+    if win_block:
+        parts.append(win_block)
+    return "\n\n".join(parts)
 
 
 def decide_default_path(
@@ -190,32 +207,105 @@ def _default_assets(creative_brief: dict, assets_available: list[str], path: str
 
 
 def _default_path_b_prompt(creative_brief: dict) -> str:
+    post_type = creative_brief.get("post_type", "product_promo")
     visual = creative_brief.get("visual", {})
     scene = visual.get("scene") or "clean lifestyle instagram scene"
     placement = visual.get("product_placement") or "hero product in scene"
     mood = visual.get("color_mood") or "warm natural light"
+    snippet = playbook_path_snippet(post_type, "B")
+    if snippet:
+        return f"{snippet} Scene: {scene}. {placement}. {mood}."
     return (
         f"Place the reference product in {scene}. {placement}. {mood}. "
         "Instagram vertical photo, realistic, clean composition, no text, no words, no typography."
     )
 
 
+def _default_path_a_prompt(creative_brief: dict) -> str:
+    post_type = creative_brief.get("post_type", "general")
+    visual = creative_brief.get("visual", {})
+    scene = visual.get("scene") or creative_brief.get("headline") or "clean instagram lifestyle scene"
+    mood = visual.get("color_mood") or "warm natural light"
+    snippet = playbook_path_snippet(post_type, "A")
+    if snippet:
+        return f"{snippet} Scene: {scene}. Mood: {mood}."
+    return (
+        f"{scene}, {mood}, instagram vertical 4:5, "
+        "clean composition, no text, no words, no typography, no logo"
+    )
+
+
+def _apply_brief_visual_binding(
+    spec: VisualSpec,
+    *,
+    creative_brief: dict,
+    profile: BrandProfile,
+) -> VisualSpec:
+    """Force path prompts and color mood to stay aligned with creative_brief.visual."""
+    visual = creative_brief.get("visual") or {}
+    scene = str(visual.get("scene", "")).strip()
+    color_mood = str(visual.get("color_mood", "")).strip()
+
+    if color_mood:
+        spec.color.mood = color_mood
+
+    composition_hint = str(visual.get("composition", "")).strip()
+    if composition_hint and spec.composition.layout == "hero_center":
+        lowered = composition_hint.lower()
+        if "left" in lowered:
+            spec.composition.layout = "hero_left"
+        elif "right" in lowered:
+            spec.composition.layout = "hero_right"
+
+    if not scene:
+        return spec
+
+    if spec.path == "B":
+        spec.path_b_edit_prompt = _default_path_b_prompt(creative_brief)
+    elif spec.path == "A":
+        spec.path_a_prompt = _default_path_a_prompt(creative_brief)
+
+    if spec.path == "C" and not spec.color.background:
+        spec.color = _default_colors(profile)
+
+    return spec
+
+
 def _apply_path_rules(
     spec: VisualSpec,
     *,
     recommended_path: str,
+    recommended_reason: str,
     post_type: str,
     assets_available: list[str],
     creative_brief: dict,
     profile: BrandProfile,
+    render_override: str | None = None,
 ) -> VisualSpec:
-    spec.path = recommended_path
     spec.post_type = post_type
 
-    if recommended_path in {"B", "C"} and not spec.assets_used:
-        spec.assets_used = _default_assets(creative_brief, assets_available, recommended_path)
+    if render_override in {"A", "B", "C"}:
+        final_path = render_override
+        spec.path_reason = spec.path_reason or f"user requested Path {render_override}"
+    else:
+        final_path = recommended_path
+        if spec.path != recommended_path:
+            spec.path_reason = f"Enforced {recommended_path}: {recommended_reason}"
 
-    if recommended_path == "C":
+    if post_type == "event_campaign":
+        final_path = "C"
+        spec.path_reason = recommended_reason
+
+    if post_type == "product_promo" and assets_available and final_path == "A":
+        final_path = recommended_path if recommended_path in {"B", "C"} else "B"
+        spec.path_reason = f"product_promo with assets cannot use Path A; using Path {final_path}"
+
+    spec.path = final_path
+
+    if final_path in {"B", "C"} and not spec.assets_used:
+        spec.assets_used = _default_assets(creative_brief, assets_available, final_path)
+
+    if final_path == "C":
         if not spec.text_overlay.enabled or not spec.text_overlay.lines:
             spec.text_overlay = _overlay_from_brief(creative_brief, post_type)
         if not spec.color.background:
@@ -225,7 +315,7 @@ def _apply_path_rules(
         elif post_type == "product_promo":
             spec.path_c_template = "product_hero_v1"
 
-    if recommended_path == "B":
+    if final_path == "B":
         spec.text_overlay = TextOverlaySpec(enabled=False, lines=[])
         if not spec.path_b_edit_prompt:
             spec.path_b_edit_prompt = _default_path_b_prompt(creative_brief)
@@ -233,13 +323,8 @@ def _apply_path_rules(
             spec.path = "A"
             spec.path_reason = "Path B requested but no product asset found; falling back to Path A"
 
-    if recommended_path == "A" and not spec.path_a_prompt:
-        visual = creative_brief.get("visual", {})
-        scene = visual.get("scene") or creative_brief.get("headline") or "clean instagram lifestyle scene"
-        spec.path_a_prompt = (
-            f"{scene}, {visual.get('color_mood', '')}, instagram vertical 4:5, "
-            "clean composition, no text, no words, no typography, no logo"
-        ).strip(", ")
+    if final_path == "A" and not spec.path_a_prompt:
+        spec.path_a_prompt = _default_path_a_prompt(creative_brief)
 
     return spec
 
@@ -268,8 +353,9 @@ class VisualDirectorAgent:
         )
 
         payload = {
+            "visual_directives": extract_visual_directives(creative_brief),
             "creative_brief": creative_brief,
-            "caption": caption,
+            "caption_context": extract_caption_context(caption),
             "recommended_path": recommended_path,
             "recommended_reason": recommended_reason,
             "render_override": render_override,
@@ -277,7 +363,7 @@ class VisualDirectorAgent:
             "brand_context": build_brand_context(profile),
         }
         result = self._client.chat_json(
-            system=SYSTEM_PROMPT,
+            system=_build_system_prompt(post_type),
             user=json.dumps(payload, ensure_ascii=False, indent=2),
             max_tokens=1536,
             temperature=0.3,
@@ -299,14 +385,22 @@ class VisualDirectorAgent:
         spec = _apply_path_rules(
             spec,
             recommended_path=recommended_path,
+            recommended_reason=recommended_reason,
             post_type=post_type,
             assets_available=assets_available,
+            creative_brief=creative_brief,
+            profile=profile,
+            render_override=render_override,
+        )
+        spec = _apply_brief_visual_binding(
+            spec,
             creative_brief=creative_brief,
             profile=profile,
         )
 
         record = {
             **spec.model_dump(),
+            "brief_refs": extract_visual_directives(creative_brief),
             "render_override": render_override,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }

@@ -1,0 +1,28 @@
+{
+  "job_id": "20260619-011508-36bfd9",
+  "post_type": "product_promo",
+  "user_request": "Dario咖啡店新品Gelato推广 - 超写实产品摄影风格。一张Dario咖啡馆木桌上的手工Gelato特写，Gelato盛在白色陶瓷碗里，表面有勺子挖过的纹理，旁边放着一杯浓缩咖啡和几颗咖啡豆。自然温暖的侧光，浅景深，背景虚化的咖啡馆环境。构图干净高级，像杂志美食大片。文字：强调意式手工Gelato新鲜上市，搭配Dario咖啡的夏日推荐。",
+  "path": "B",
+  "path_reason": "Product asset available for reference scene generation; Path B allows placing the hero product in a realistic lifestyle scene as described in the creative brief, with no text overlay needed.",
+  "hook": "Summer just got sweeter 🍦",
+  "scene": "Close-up of a white ceramic bowl filled with handcrafted gelato on a wooden café table, a spoon scooping into the creamy texture, next to a small espresso cup and scattered coffee beans. Soft natural side light, shallow depth of field, blurred café background.",
+  "critic": {
+    "overall_score": 9,
+    "caption_score": 9,
+    "visual_score": 8,
+    "alignment_score": 9,
+    "summary": "Strong alignment with the creative brief, with a compelling hook and clear CTA; minor asset mismatch and generic body details prevent a perfect score.",
+    "issues": [
+      "Visual spec uses 'sample_bottle.png' as hero product, but the scene describes gelato in a bowl; asset mismatch may confuse generation.",
+      "Body bullet points are slightly generic; could add a specific flavor or ingredient detail to strengthen the key message.",
+      "No approved benchmarks provided for comparison, so scoring is based solely on brief alignment."
+    ],
+    "suggestions": [
+      "Replace 'sample_bottle.png' with a gelato-related asset or remove the asset reference to avoid visual inconsistency.",
+      "Add a specific flavor name (e.g., 'Pistachio') or ingredient (e.g., 'Sicilian almonds') to the body to make it more enticing.",
+      "Consider adding a subtle text overlay with the headline 'Summer just got sweeter' to reinforce the hook visually."
+    ]
+  },
+  "action": "generated",
+  "saved_at": "2026-06-19T01:15:48.881284+00:00"
+}

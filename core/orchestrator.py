@@ -12,7 +12,9 @@ from core.brand_context import build_profile_summary
 from core.content_pipeline import ContentPipeline
 from core.intent_router import RoutedIntent, route_message
 from core.job_store import read_json, try_read_json
+from core.pipeline_errors import TypeConfirmationRequired
 from core.profile_store import load_profile
+from core.type_confirm import parse_type_confirmation
 from pipeline.review_edit import apply_edit_instruction
 from pipeline.review_gate import apply_review, build_review_prompt
 
@@ -66,6 +68,10 @@ class Orchestrator:
                 return OrchestratorResult("Please tell how to edit, such as make it bigger / move the product to the right / change the text: make it more casual")
             return self.apply_edit(instruction)
 
+        if routed.intent == "confirm_post_type":
+            choice = routed.payload.get("choice", "").strip()
+            return self.confirm_post_type(choice)
+
         if routed.intent == "manage_profile":
             message = routed.payload.get("message", "").strip()
             if message.startswith("/profile"):
@@ -89,8 +95,37 @@ class Orchestrator:
             return OrchestratorResult(
                 "The previous content is still waiting for review. Please reply ok / publish or skip / skip."
             )
+        if state and state.get("status") == "confirm_post_type":
+            return OrchestratorResult(
+                "Please confirm the post type first. Reply 1/2/3 or type: product promo / event campaign / general."
+            )
 
-        preview_path = self.pipeline.run_guided(user_request)
+        try:
+            preview_path = self.pipeline.run_guided(user_request)
+        except TypeConfirmationRequired as exc:
+            return OrchestratorResult(text=exc.message)
+        except RuntimeError as exc:
+            return OrchestratorResult(str(exc))
+        except Exception as exc:
+            return OrchestratorResult(f"Generation failed: {exc}")
+
+        caption = read_json("caption.json")
+        text = build_review_prompt(caption)
+        return OrchestratorResult(text=text, image_path=preview_path)
+
+    def confirm_post_type(self, choice: str) -> OrchestratorResult:
+        post_type = parse_type_confirmation(choice)
+        if not post_type:
+            return OrchestratorResult(
+                "Could not parse post type. Reply 1/2/3 or type: product promo / event campaign / general."
+            )
+        try:
+            preview_path = self.pipeline.continue_after_type_confirm(post_type)
+        except RuntimeError as exc:
+            return OrchestratorResult(str(exc))
+        except Exception as exc:
+            return OrchestratorResult(f"Generation failed after type confirm: {exc}")
+
         caption = read_json("caption.json")
         text = build_review_prompt(caption)
         return OrchestratorResult(text=text, image_path=preview_path)
@@ -112,11 +147,12 @@ class Orchestrator:
         return (
             "SMAS commands:\n"
             "1. /generate <content request>   generate Ins preview\n"
-            "2. after generating, reply ok / publish   confirm the draft\n"
-            "3. reply skip / skip      discard the current draft\n"
-            "4. edit the preview, such as: edit: make it bigger / move the product to the right / change the text: make it more casual\n"
-            "5. /profile               check the brand profile\n"
-            "6. /status                check the current task\n\n"
+            "2. if type is unclear, reply 1/2/3 or type: product promo\n"
+            "3. after generating, reply ok / publish   confirm the draft\n"
+            "4. reply skip / skip      discard the current draft\n"
+            "5. edit the preview, such as: edit: make it bigger / move the product to the right / change the text: make it more casual\n"
+            "6. /profile               check the brand profile\n"
+            "7. /status                check the current task\n\n"
             "Current stage will not automatically publish to Instagram, only save the draft after review."
         )
 

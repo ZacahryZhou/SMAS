@@ -1,7 +1,7 @@
 # SMAS 架构 V2 — 设计补充
 
 > **主文档已合并至 [DEV_ARCHITECTURE.md](./DEV_ARCHITECTURE.md)**（架构、开发里程碑、模块清单、验收标准）。  
-> 本文保留 V2 设计讨论中的细节与示例，便于查阅。
+> 本文保留 V2 设计讨论中的细节与示例，便于查阅。V2.1 的执行计划见 [CONTENT_IMPROVEMENT_ROADMAP.md](./CONTENT_IMPROVEMENT_ROADMAP.md)。
 
 ---
 
@@ -12,7 +12,7 @@
 | 流程、模块、里程碑、验收 | [DEV_ARCHITECTURE.md](./DEV_ARCHITECTURE.md) |
 | 创意简报 / visual_spec 示例、类型扩展说明 | 本文 |
 
-**代码现状**：V1 完成；V2 按 DEV_ARCHITECTURE 第 6 节推进。
+**代码现状**：V2 内容流水线已完成；V2.1 正在增强内容质量、Path 规则和类型确认。
 
 ---
 
@@ -25,7 +25,8 @@ V2 增加：
 1. **帖子类型** — 推广、活动、通用，文案与图片策略不同  
 2. **创意简报** — 文案与图片共用一份导演稿  
 3. **专门图片 Agent** — Visual Director 定策略，Pipeline 执行 A/B/C 三条路径  
-4. **用户素材** — 商品图可合成进预览
+4. **用户素材** — 商品图可进入 Path B 参考生图或 Path C 模板合成
+5. **V2.1 playbooks** — 每种帖子类型有稳定的文案、构图和 Path 规则
 
 ---
 
@@ -36,6 +37,9 @@ V2 增加：
         │
         ▼
 Content Classifier → brief.json
+        │
+        ├─ 低置信度时：Type Confirm（用户回复 1/2/3）
+        │
         ▼
 Creative Brief Agent → creative_brief.json
         ├────────────────────┐
@@ -59,7 +63,7 @@ Caption Agent          Visual Director Agent → visual_spec.json
 
 | 类型 | 文案 | 默认图片 |
 |------|------|----------|
-| product_promo | 卖点 + 场景 + CTA | 无素材 A；有素材 C |
+| product_promo | 卖点 + 场景 + CTA | 无素材 A；有素材 B；需要价签/叠字 C |
 | event_campaign | 时间地点 + 紧迫感 | C（叠字） |
 | general | V1 结构 | A |
 
@@ -134,4 +138,6 @@ image.png
 | V2-B | Visual Director + Path C + 素材 |
 | V2-C | Path B 商品参考生图 |
 | V2-D | 审核 edit 增强 |
+| V2.1-W1 | Playbooks + Path 硬规则 + 类型确认 |
+| V2.1-W3 | Critic + Feedback Loop + wins JSONL |
 | MVP-1 | Ins API（暂缓） |

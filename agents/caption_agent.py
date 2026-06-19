@@ -4,7 +4,12 @@ import json
 from datetime import datetime, timezone
 
 from core.brand_context import build_brand_context
+from core.brief_binding import (
+    caption_binding_rules,
+    extract_caption_directives,
+)
 from core.job_store import mark_step_done, read_json, write_json
+from core.playbook import format_playbook_block, format_win_examples
 from core.models import BrandProfile
 from core.post_types import POST_TYPE_LABELS
 from core.profile_store import load_profile
@@ -87,6 +92,17 @@ def build_full_caption(hook: str, body: str, cta: str, hashtags: list[str]) -> s
     return "\n".join(part for part in parts if part)
 
 
+def _build_system_prompt(post_type: str) -> str:
+    parts = [PROMPTS.get(post_type, PROMPTS["general"]), caption_binding_rules()]
+    playbook_block = format_playbook_block(post_type)
+    if playbook_block:
+        parts.append(playbook_block)
+    win_block = format_win_examples(post_type)
+    if win_block:
+        parts.append(win_block)
+    return "\n\n".join(parts)
+
+
 def _load_brief_context() -> dict:
     try:
         return read_json("creative_brief.json")
@@ -110,7 +126,7 @@ class CaptionAgent:
         profile = profile or load_profile()
         brief = _load_brief_context()
         post_type = brief.get("post_type", "general")
-        system_prompt = PROMPTS.get(post_type, PROMPTS["general"])
+        system_prompt = _build_system_prompt(post_type)
         if edit_instruction:
             system_prompt += (
                 "\n\nThe user wants to revise the current caption. "
@@ -118,6 +134,7 @@ class CaptionAgent:
             )
 
         payload = {
+            "brief_directives": extract_caption_directives(brief),
             "creative_brief": brief,
             "post_type": post_type,
             "post_type_label": POST_TYPE_LABELS.get(post_type, post_type),
@@ -139,6 +156,7 @@ class CaptionAgent:
             "cta": result["cta"],
             "hashtags": hashtags,
             "alt_text": result.get("alt_text", ""),
+            "brief_refs": extract_caption_directives(brief),
             "full_caption": build_full_caption(
                 result["hook"],
                 result["body"],

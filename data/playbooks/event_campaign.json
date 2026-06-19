@@ -1,0 +1,19 @@
+{
+  "post_type": "event_campaign",
+  "label_en": "Event campaign",
+  "label_zh": "活动促销",
+  "caption_guidance": "Hook: excitement or main benefit of the event. Body: compact lines with date, time, location, and key rules. CTA: urgency — save, comment, or RSVP aligned with brand voice.",
+  "visual_guidance": "Always Path C with Pillow text overlay. Bold focal area, energetic mood, high contrast. 1-3 short uppercase labels (event name, date, location). Max 2 font weights. Leave safe zone center for readability on mobile.",
+  "path_rules": "Always Path C for reliable date/time/place overlays. text_overlay.enabled must be true. Do not use Path A or B for event posts.",
+  "composition": {
+    "aspect_ratio": "4:5",
+    "resolution": "1080x1350",
+    "product_frame_pct": "40-60",
+    "safe_zone": "Headline top-left or top-center; details bottom-center; avoid edge cropping."
+  },
+  "prompt_snippets": {
+    "path_a": "Not used for event_campaign.",
+    "path_b": "Not used for event_campaign.",
+    "path_c": "Event promo template: bold background using brand accent color, clear area for event title and date/time overlay, energetic campaign mood, high contrast, no long paragraphs on image."
+  }
+}

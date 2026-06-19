@@ -1,0 +1,19 @@
+{
+  "post_type": "general",
+  "label_en": "General",
+  "label_zh": "通用",
+  "caption_guidance": "Hook under 20 words, authentic brand voice. Body: 2-4 short lines — story, thought, or behind-the-scenes. CTA: light engagement question. Minimal promo language.",
+  "visual_guidance": "Default Path A atmospheric scene. Tie to brand visual keywords and palette. No product hard-sell, no price badges, usually no on-image text.",
+  "path_rules": "Default Path A. Use Path C only if user explicitly requests overlay text. Do not use Path B without a product asset and product_promo intent.",
+  "composition": {
+    "aspect_ratio": "4:5",
+    "resolution": "1080x1350",
+    "product_frame_pct": "n/a",
+    "safe_zone": "Atmospheric composition, rule of thirds, brand-consistent color mood."
+  },
+  "prompt_snippets": {
+    "path_a": "Atmospheric instagram lifestyle scene matching brand mood, vertical 4:5, cinematic natural light, minimal clutter, no text, no words, no typography, no logo, no obvious advertisement.",
+    "path_b": "Only if a reference object is provided: subtle lifestyle scene with focal subject, not a sales layout.",
+    "path_c": "Rare for general posts; simple brand-colored background with one short quote-style label max."
+  }
+}

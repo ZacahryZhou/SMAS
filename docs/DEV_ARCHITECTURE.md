@@ -1,8 +1,8 @@
 # SMAS 开发与架构
 
 > **S**ocial **M**edia **A**gent **S**ystem — Instagram 内容运营  
-> 文档版本：**V2**（2026-06）  
-> 代码现状：**V1 已完成** → 正在按 V2 演进
+> 文档版本：**V2.1**（2026-06）  
+> 代码现状：**V2 内容流水线已完成** → 正在做 V2.1 质量增强
 
 ---
 
@@ -31,10 +31,13 @@
 | **V2-B** | Visual Director + Path C 模板合成 + 本地素材 | ✅ 完成 |
 | **V2-C** | Path B 商品参考生图 | ✅ 完成 |
 | **V2-D** | 审核增强（按类型 edit） | ✅ 完成 |
+| **V2.1-W1** | Playbooks、Path 硬规则、类型确认 | ✅ 完成 |
+| **V2.1-W2** | Brief 绑定 Caption/Visual | ✅ 完成 |
+| **V2.1-W3** | Critic + Feedback Loop + wins JSONL | ✅ 完成 |
 | **MVP-1** | R2 CDN + Instagram Graph API 发布 | ⏸ 暂缓 |
 
-**当前流水线（V1 代码）**：`Topic → Caption → Image → Preview → Review`  
-**目标流水线（V2）**：见第 3 节。
+**当前主流水线（V2）**：`Classifier → Creative Brief → Caption → Visual Director → Image Render → Preview → Review`  
+**当前增强目标（V2.1）**：先提高单条内容质量，再做网站和用户运营。
 
 ---
 
@@ -54,8 +57,13 @@ Channel (CLI / Telegram) → Intent Router → Orchestrator
         │
         ▼
 Content Classifier          → state/brief.json
+        │
+        ├─ 若类型置信度低：Type Confirm → 用户回复 1/2/3
+        │
         ▼
 Creative Brief Agent        → state/creative_brief.json
+        │                    ↑
+        │                    └─ data/playbooks/*.json（V2.1）
         ├──────────────────────────┐
         ▼                          ▼
 Caption Agent (按类型)      Visual Director Agent
@@ -103,11 +111,12 @@ Caption Agent (按类型)      Visual Director Agent
 
 | `post_type` | 中文 | 文案结构 | 默认图片路径 |
 |-------------|------|----------|--------------|
-| `product_promo` | 商品推广 | hook → 3 卖点 → 场景 → CTA → 标签 | 无素材：**A**；有素材：**C** |
+| `product_promo` | 商品推广 | hook → 3 卖点 → 场景 → CTA → 标签 | 无素材：**A**；有素材：**B**；有价签/叠字：**C** |
 | `event_campaign` | 活动促销 | hook → 时间地点 → 紧迫感 → CTA | **C**（Pillow 叠字） |
 | `general` | 通用 | V1 结构 | **A** |
 
 用户可主动指定；未指定时 **Content Classifier** 推断。  
+V2.1 起，如果分类置信度低于 `SMAS_TYPE_CONFIRM_THRESHOLD`，Orchestrator 会先要求用户确认类型，再继续生成。  
 `educational`（教程）及 `brand_story`、`seasonal` 等 **后期扩展**，枚举预留。
 
 ---
@@ -132,9 +141,9 @@ Caption Agent (按类型)      Visual Director Agent
 | Telegram Bot | `channels/telegram_bot.py` | Telegram 交互（勿与 OpenClaw 同 token 并行） |
 | OpenClaw 桥接 | `scripts/openclaw_bridge.py`, `scripts/smas.sh` | 小龙虾调 SMAS |
 
-### 5.2 待开发（V2）
+### 5.2 已实现 / 进行中（V2 + V2.1）
 
-| 模块 | 计划文件 | 职责 |
+| 模块 | 文件 | 职责 |
 |------|----------|------|
 | Content Classifier | `agents/content_classifier.py` | 判断 post_type、用户意图 |
 | Creative Brief Agent | `agents/creative_brief_agent.py` | 创意简报（导演稿） |
@@ -143,6 +152,9 @@ Caption Agent (按类型)      Visual Director Agent
 | Image Render Pipeline | `pipeline/image_render.py` | Path A/B/C 执行 |
 | Asset Manager | `core/asset_manager.py` | 素材存取、校验、抠图预处理 |
 | Content Pipeline V2 | `core/content_pipeline.py` | 串联 V2 全流程 |
+| Playbook Loader | `core/playbook.py` | 读取每种帖子类型的宣传规范 |
+| Type Confirm | `core/type_confirm.py` | 低置信度时让用户选 `1/2/3` |
+| Feedback Store | `core/feedback_store.py` | 保存任务反馈与 wins JSONL（V2.1-W3） |
 
 ### 5.3 图片层：导演 vs 执行
 
@@ -350,6 +362,8 @@ DEEPSEEK_MODEL=deepseek-chat
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 FAL_KEY=
 SMAS_SSL_VERIFY=true          # macOS SSL 问题时可为 false
+SMAS_PRODUCT_RENDER_PATH=auto # auto | b | c
+SMAS_TYPE_CONFIRM_THRESHOLD=0.8
 
 # M3 / Telegram（与 OpenClaw 二选一）
 TELEGRAM_BOT_TOKEN=
@@ -386,5 +400,7 @@ INSTAGRAM_*
 
 ## 13. 相关文档
 
+- [CONTENT_IMPROVEMENT_ROADMAP.md](./CONTENT_IMPROVEMENT_ROADMAP.md) — V2.1 内容质量增强路线图
+- [PLAYBOOKS.md](./PLAYBOOKS.md) — 按帖子类型的文案与视觉规范
 - [ARCHITECTURE_V2.md](./ARCHITECTURE_V2.md) — V2 设计细节与历史讨论记录
 - [../README.md](../README.md) — 项目概览与快速开始

@@ -34,6 +34,14 @@ class Settings:
     # product_promo + assets: auto | b (reference gen) | c (template)
     product_render_path: str = os.getenv("SMAS_PRODUCT_RENDER_PATH", "auto").strip().lower()
 
+    type_confirm_threshold: float = float(os.getenv("SMAS_TYPE_CONFIRM_THRESHOLD", "0.8"))
+
+    critic_enabled: bool = _bool(os.getenv("SMAS_CRITIC_ENABLED"), default=True)
+    critic_warn_threshold: float = float(os.getenv("SMAS_CRITIC_WARN_THRESHOLD", "6"))
+
+    wins_example_limit: int = int(os.getenv("SMAS_WINS_EXAMPLE_LIMIT", "2"))
+    wins_min_score: float = float(os.getenv("SMAS_WINS_MIN_SCORE", "0"))
+
     ssl_verify: bool = _bool(os.getenv("SMAS_SSL_VERIFY"), default=True)
     ssl_cert_file: str = os.getenv("SSL_CERT_FILE", "")
 
@@ -50,3 +58,8 @@ def ensure_dirs() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     PROFILE_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    from core.feedback_store import ensure_feedback_dirs
+    from core.playbook import ensure_playbook_dirs
+
+    ensure_playbook_dirs()
+    ensure_feedback_dirs()

@@ -84,6 +84,16 @@ def cmd_generate(user_request: str) -> int:
             f"(caption {critic.get('caption_score')}, visual {critic.get('visual_score')}, "
             f"alignment {critic.get('alignment_score')})"
         )
+    alignment = try_read_json("asset_alignment.json")
+    if alignment and alignment.get("actions"):
+        print(f"- Asset alignment: {'; '.join(alignment['actions'])}")
+    state = try_read_json("state.json") or {}
+    auto_refine = state.get("auto_refine") or {}
+    if auto_refine.get("attempts"):
+        print(
+            f"- Auto-refine: {auto_refine.get('attempts')} pass(es), "
+            f"last scope={auto_refine.get('last_scope')} ({auto_refine.get('last_reason')})"
+        )
     print(f"- Brief: state/brief.json, state/creative_brief.json, state/visual_spec.json")
     print(f"- Full caption saved: state/caption.json")
     print(f"- Job state: state/state.json")

@@ -8,6 +8,8 @@ from agents.creative_brief_agent import CreativeBriefAgent
 from agents.critic_agent import CriticAgent
 from agents.visual_director import VisualDirectorAgent
 from config import settings
+from core.asset_alignment import apply_asset_alignment
+from core.auto_refine import build_refine_record, choose_refine_scope, should_auto_refine
 from core.feedback_store import save_critic_feedback
 from core.job_store import init_job, mark_step_done, read_json, try_read_json, update_job, write_json
 from core.pipeline_errors import TypeConfirmationRequired
@@ -17,17 +19,6 @@ from pipeline.image_render import ImageRenderPipeline
 from pipeline.preview_composer import PreviewComposer
 
 
-#这里是在启动工具
-#ContentClassifierAgent判断内容类型
-#CreativeBriefAgent生成创意简报
-#CaptionAgent生成文案
-#VisualDirectorAgent生成图片
-#ImageRenderPipeline生成图片
-
-#这里的每一步都依赖上一步的输出作为输入然后生成新的输出
-#这叫做数据依赖
-
-#这里的是流水线 比如视觉方向是根据文案的输出来决定的原因两个1:保持一致性 2:简单可靠 3:可扩展性
 class ContentPipeline:
     def __init__(self) -> None:
         self.classifier = ContentClassifierAgent()
@@ -43,9 +34,28 @@ class ContentPipeline:
         confidence = float(brief.get("post_type_confidence", 0.0))
         return confidence < settings.type_confirm_threshold
 
-    def _run_critic(self, profile) -> None:
+    def _apply_asset_alignment_step(self, profile) -> dict:
+        if not settings.asset_alignment_enabled:
+            return {"checked": False, "skipped": True}
+        creative_brief = read_json("creative_brief.json")
+        classification = read_json("brief.json")
+        visual_spec = read_json("visual_spec.json")
+        report = apply_asset_alignment(
+            visual_spec,
+            creative_brief=creative_brief,
+            classification=classification,
+        )
+        write_json("visual_spec.json", visual_spec)
+        mark_step_done("asset_alignment", next_step="image")
+        return report
+
+    def _run_render_and_preview(self, profile) -> Path:
+        self.image_render.run(profile=profile)
+        return self.preview_composer.run(profile=profile)
+
+    def _run_critic(self, profile) -> dict | None:
         if not settings.critic_enabled:
-            return
+            return None
         try:
             report = CriticAgent().run(
                 profile=profile,
@@ -54,12 +64,68 @@ class ContentPipeline:
             state = read_json("state.json")
             save_critic_feedback(state["job_id"], report, state)
             mark_step_done("critic", next_step="review")
+            return report
         except Exception:
-            # Critic must never block content generation.
+            return None
+
+    def _run_refine_pass(self, profile, *, scope: str) -> None:
+        if scope == "caption":
+            self.caption_agent.run(profile=profile)
+            self.preview_composer.run(profile=profile)
+            mark_step_done("auto_refine_caption", next_step="review")
             return
 
+        self.visual_director.run(profile=profile)
+        self._apply_asset_alignment_step(profile)
+        self._run_render_and_preview(profile)
+        mark_step_done("auto_refine_visual", next_step="review")
+
+    def _maybe_auto_refine(self, profile, *, initial_report: dict | None) -> dict | None:
+        if not initial_report:
+            return None
+
+        state = read_json("state.json")
+        retry_count = int((state.get("auto_refine") or {}).get("attempts", 0))
+        alignment_report = try_read_json("asset_alignment.json")
+
+        do_refine, reason = should_auto_refine(
+            initial_report,
+            alignment_report=alignment_report,
+            retry_count=retry_count,
+            max_retries=settings.auto_refine_max_retries,
+            score_threshold=settings.auto_refine_score_threshold,
+            enabled=settings.auto_refine_enabled,
+        )
+        if not do_refine:
+            return initial_report
+
+        scope = choose_refine_scope(initial_report, alignment_report=alignment_report)
+        update_job(step="auto_refine", status="running")
+        self._run_refine_pass(profile, scope=scope)
+
+        after_report = self._run_critic(profile) or initial_report
+        refine_record = build_refine_record(
+            scope=scope,
+            reason=reason,
+            attempt=retry_count + 1,
+            before_report=initial_report,
+            after_report=after_report,
+        )
+        history = list((state.get("auto_refine") or {}).get("history", []))
+        history.append(refine_record)
+        update_job(
+            auto_refine={
+                "attempts": retry_count + 1,
+                "last_scope": scope,
+                "last_reason": reason,
+                "history": history,
+            }
+        )
+        return after_report
+
     def _finalize_for_review(self, profile, preview_path: Path) -> Path:
-        self._run_critic(profile)
+        initial_report = self._run_critic(profile)
+        self._maybe_auto_refine(profile, initial_report=initial_report)
         update_job(status="waiting_review", step="review")
         return preview_path
 
@@ -67,8 +133,8 @@ class ContentPipeline:
         self.brief_agent.run(profile=profile)
         self.caption_agent.run(profile=profile)
         self.visual_director.run(profile=profile)
-        self.image_render.run(profile=profile)
-        preview_path = self.preview_composer.run(profile=profile)
+        self._apply_asset_alignment_step(profile)
+        preview_path = self._run_render_and_preview(profile)
         return preview_path
 
     def run_guided(self, user_request: str) -> Path:
@@ -78,7 +144,6 @@ class ContentPipeline:
                 "Brand profile is not ready. Set onboarding_complete=true and fill niche.category in "
                 "data/brand_profile.json."
             )
-        #一开始初始化开始工作前记录任务开始并且写入state.json
         init_job(user_request=user_request, mode="guided")
 
         try:

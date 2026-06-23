@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timezone
 
 from config import settings
+from core.asset_alignment import build_product_corpus, pick_best_asset
 from core.asset_manager import pick_default_product
 from core.brand_context import build_brand_context
 from core.brief_binding import (
@@ -165,7 +166,13 @@ def _overlay_from_brief(creative_brief: dict, post_type: str) -> TextOverlaySpec
     return TextOverlaySpec(enabled=bool(lines), lines=lines)
 
 
-def _default_assets(creative_brief: dict, assets_available: list[str], path: str) -> list[AssetUsed]:
+def _default_assets(
+    creative_brief: dict,
+    assets_available: list[str],
+    path: str,
+    *,
+    classification: dict | None = None,
+) -> list[AssetUsed]:
     if path not in {"B", "C"}:
         return []
 
@@ -194,7 +201,12 @@ def _default_assets(creative_brief: dict, assets_available: list[str], path: str
     if assets:
         return assets
 
-    default_product = pick_default_product(assets_available)
+    corpus = build_product_corpus(
+        creative_brief=creative_brief,
+        classification=classification,
+    )
+    aligned = pick_best_asset(assets_available, corpus)
+    default_product = aligned or pick_default_product(assets_available)
     if default_product and creative_brief.get("post_type") == "product_promo":
         return [
             AssetUsed(
@@ -281,6 +293,7 @@ def _apply_path_rules(
     creative_brief: dict,
     profile: BrandProfile,
     render_override: str | None = None,
+    user_request: str = "",
 ) -> VisualSpec:
     spec.post_type = post_type
 
@@ -303,7 +316,12 @@ def _apply_path_rules(
     spec.path = final_path
 
     if final_path in {"B", "C"} and not spec.assets_used:
-        spec.assets_used = _default_assets(creative_brief, assets_available, final_path)
+        spec.assets_used = _default_assets(
+            creative_brief,
+            assets_available,
+            final_path,
+            classification={"assets_available": assets_available, "user_request": user_request},
+        )
 
     if final_path == "C":
         if not spec.text_overlay.enabled or not spec.text_overlay.lines:
@@ -391,6 +409,7 @@ class VisualDirectorAgent:
             creative_brief=creative_brief,
             profile=profile,
             render_override=render_override,
+            user_request=user_request,
         )
         spec = _apply_brief_visual_binding(
             spec,

@@ -39,6 +39,11 @@ class Settings:
     critic_enabled: bool = _bool(os.getenv("SMAS_CRITIC_ENABLED"), default=True)
     critic_warn_threshold: float = float(os.getenv("SMAS_CRITIC_WARN_THRESHOLD", "6"))
 
+    asset_alignment_enabled: bool = _bool(os.getenv("SMAS_ASSET_ALIGNMENT_ENABLED"), default=True)
+    auto_refine_enabled: bool = _bool(os.getenv("SMAS_AUTO_REFINE_ENABLED"), default=True)
+    auto_refine_max_retries: int = int(os.getenv("SMAS_AUTO_REFINE_MAX_RETRIES", "1"))
+    auto_refine_score_threshold: float = float(os.getenv("SMAS_AUTO_REFINE_SCORE_THRESHOLD", "6"))
+
     wins_example_limit: int = int(os.getenv("SMAS_WINS_EXAMPLE_LIMIT", "2"))
     wins_min_score: float = float(os.getenv("SMAS_WINS_MIN_SCORE", "0"))
 
